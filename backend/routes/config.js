@@ -1,0 +1,4 @@
+module.exports = {
+    JWT_SECRET : "Lorem3044040q03e9eeqw9fiasdnoanicnasivjasduoinaoi;fjasidvjadfnoi;ewjbuidfbne90vjef m o eifvnoidfmnvi;efuvjasfopvnoieffvmefvnmiefnvuoiewijboewtnetijuo;etnv0'iegj'iermgqekgoi;jqero-gjqerogoqeroigmpefov qroerjmvejvuiqerkviernvehjqoiejguoenidjnuienbnvoixcmvoi;asmvasfmvpoasdmvsadmc;oawm ;oivnijcoi;voirgrvoi;ergnoiefnvoi;efnvfivnffoivnqer;oivnoivnqeroivneoi;gnq;oeirvn;qoiroieqrvnqo;irvnoi;qvn;oiqnoiqvnqinvqiqnionoinasdijasoidjsoidjfijfjjjijijoijiegjijjoit4joirfjierfjirfjierfugtrhujgtgtrgtrujgtrsugtrgtrugtr",
+    ConnectionStr :"mongodb+srv://cob13alokmishra:BhqnDS5DP059azaK@harkiratpaytm.humswia.mongodb.net/"
+}
