@@ -51,29 +51,35 @@ router.get("/self" , Auth ,  async (req , res)=>{
 //Current Balance is Enough to Carry Out Transaction
 //No other Transaction is being Carried Out at the Same Time
 router.post("/transfer" , Authp , async (req , res)=>{
-    const body = req.body;
-    const decodeJwt = jwt.verify(body.token , JWT_SECRET)
-    // console.log(body.toId)
-    // console.log(!AccountSchema.safeParse((body.toId)).success)
-    if(!decodeJwt  || !AccountSchema.safeParse(decodeJwt).success || !AccountSchema.safeParse({userOId : body.toId}).success){
-        return res.status(411).json({
-            message : "Token Was not verified Successfully Please try login again"
-         }
-        )
-    }
-    if(body.toId == decodeJwt.userOId){
-        return res.status(411).json({
-            message : "SENDER AND RECIEVER CANNOT BE SAME"
-        })
-    }
+    
     try{
+        
+        const body = req.body;
+        const decodeJwt = jwt.verify(body.token , JWT_SECRET)
+        
+        if(!decodeJwt  || !AccountSchema.safeParse(decodeJwt).success){
+            return res.status(411).json({
+                message : "Token Was not verified Successfully Please try login again"
+            }
+            )
+        }
+        
+   
         const session = await mongoose.startSession();
 
         session.startTransaction();
-        const ToAccount = await Account.findOne({
-            userOId : mongoose.Types.ObjectId.createFromHexString(body.toId)
+        const userTo = await User.findOne({
+            userId : body.toId
         }).session(session)
-        if(!ToAccount || (ToAccount + body.value) > (99999)){
+        if(!userTo){
+            return res.status(411).json({
+                message : "No Such User Was Found"
+            })
+        }
+        const ToAccount = await Account.findOne({
+            userOId : (userTo._id)
+        }).session(session)
+        if(!ToAccount){
             await session.abortTransaction();
             return res.status(411).json({
                 message : "RECIEVER DOES NOT EXIST!"
@@ -88,8 +94,13 @@ router.post("/transfer" , Authp , async (req , res)=>{
                 message : "NOT ENOUGH MONEY IN YOUR ACCOUNT!"
             })
         }
+        if(decodeJwt.userOId === userTo._id.toString()){
+            return res.status(411).json({
+                message : "Both Receiver and sender cannot be same!"
+            })
+        }
         await Account.updateOne({ userOId: mongoose.Types.ObjectId.createFromHexString(decodeJwt.userOId) }, { $inc: { balance: -body.value } }).session(session);
-        await Account.updateOne({ userOId: mongoose.Types.ObjectId.createFromHexString(body.toId) }, { $inc: { balance: body.value } }).session(session);
+        await Account.updateOne({ userOId: (userTo._id) }, { $inc: { balance: body.value } }).session(session);
         await session.commitTransaction();
         res.status(200).json({
             message: "Transfer successful"

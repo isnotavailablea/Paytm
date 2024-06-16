@@ -21,6 +21,7 @@ const AccountSchema = zod.object({
         balance : zod.number().int().positive()
 })
 
+
 router.post("/signup" , async (req , res) =>{
     const body = req.body;
     // console.log(body)
@@ -60,7 +61,11 @@ router.post("/signup" , async (req , res) =>{
             // console.log(AccountSchema.safeParse(accObj).error)
             return res.status(411).json({
                 message :  "Paytm Account Creation Failed Please Try Again Later User creation was Success",
-                token
+                data : {
+                    token,
+                    firstName : CreateUser.firstName,
+                    lastName : CreateUser.lastName
+                }
          })
         }
         accObj.userOId = CreateUser._id
@@ -78,14 +83,19 @@ router.post("/signup" , async (req , res) =>{
             // console.log(CreateAccount)
             return res.status(411).json({
                message :  "Paytm Account Creation Failed Please Try Again Later User creation was Success",
-               token,firstName : CreateUser.firstName,
-               lastName : CreateUser.lastName
+               data : {
+                token,firstName : CreateUser.firstName,
+                lastName : CreateUser.lastName
+               }
         })
         }
         return res.status(200).json({
             message : "User Created!!",
-            token,firstName : CreateUser.firstName,
-            lastName : CreateUser.lastName
+            data : {
+                token,
+                firstName : CreateUser.firstName,
+                lastName : CreateUser.lastName
+            }
         })
     }catch(err){
         // console.log("Error")
@@ -103,15 +113,15 @@ const loginSchema = zod.object({
 
 
 router.get("/login" , async (req , res)=>{
-    const body = req.query;
-    // console.log(body)
-    const zodCheck = loginSchema.safeParse(body);
-    if(!zodCheck.success){
-        return res.status(411).json({
-            message : "Login Body invalid"
-        })
-    }
     try{
+        const body = req.query;
+    // console.log(body)
+        const zodCheck = loginSchema.safeParse(body);
+        if(!zodCheck.success){
+            return res.status(411).json({
+                message : "Login Body invalid"
+            })
+        }
         const userDetails = await User.findOne({
             userId : body.userId,
             password : body.password
@@ -127,9 +137,11 @@ router.get("/login" , async (req , res)=>{
         } , JWT_SECRET)
         return res.status(200).json({
             message : "Welcome",
-            token,
-            firstName : userDetails.firstName,
-            lastName : userDetails.lastName
+            data : {
+                token,
+                firstName : userDetails.firstName,
+                lastName : userDetails.lastName
+            }
         })
     }
     catch(err){
@@ -141,8 +153,9 @@ router.get("/login" , async (req , res)=>{
 
 router.get("/find" , Auth  ,  async (req , res)=>{
     try{
+        // console.log("hre")
         const filter = req.query.filter || "";
-
+        console.log(filter)
         const users = await User.find({
             $or: [{
                 firstName: {
@@ -151,11 +164,24 @@ router.get("/find" , Auth  ,  async (req , res)=>{
             }, {
                 lastName: {
                     "$regex": filter
+                }},{
+                    userId : {
+                        "$regex" :filter
+                    }
                 }
-            }]});
+            ]});
+            // console.log(users)
+            const data = users.map(el => {
+                return {
+                    firstName: el.firstName,
+                    lastName : el.lastName,
+                    userId : el.userId
+                }
+            })
+            // console.log(data)
         return res.status(200).json({
             message : "Here Is What We Could Find",
-            data : users
+            data 
          })
     }
     catch(err){
@@ -165,10 +191,34 @@ router.get("/find" , Auth  ,  async (req , res)=>{
     }
 })
 
-router.get("/verify" , Auth , (req , res) => {
+
+
+router.get("/verify" , Auth , async (req , res) => {
     // console.log("verifying")
-    return res.status(200).json({
-        message : "Welcome Back!"
-    })
+    try{
+        const decodeJwt = jwt.verify(req.query.token , JWT_SECRET);
+        // console.log(userOId)
+        const user = await User.findOne({
+            _id : mongoose.Types.ObjectId.createFromHexString(decodeJwt.userOId)
+        })
+        // console.log(user)
+        if(!user){
+            throw "Not able to Find User";
+        }
+        // console.log("Deep")
+        return res.status(200).json({
+            message : "Welcome Back!",
+            data : {
+                token : req.query.token,
+                firstName: user.firstName,
+                lastName: user.lastName
+            }
+        })}
+    catch(err){
+        // console.log(err)
+        return res.status(411).json({
+            message : "Cannot Find The User"
+        })
+    }
 })
 module.exports = router
